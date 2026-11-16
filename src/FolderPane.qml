@@ -44,8 +44,7 @@ FocusScope {
     // the folder. By path: Recents can list two files of the same name.
     property string lastPath: ""
     property string loadedPath: ""
-    // The search the loaded listing answered, so a new query is a new
-    // listing (the cursor goes to its first result) rather than a re-read.
+    // The search the loaded listing answered.
     property string loadedQuery: ""
     // Set when a click on empty space lets go of the cursor: a re-read or a
     // switch of view leaves it let go of, until it moves again or another
@@ -288,13 +287,11 @@ FocusScope {
                 return
             const leftBehind = backend.leftBehind()
             const pending = backend.takeSelection()
-            // A new query is a new listing, so the cursor goes to its first
-            // result. A query that has just been cleared is not: ending a
-            // search keeps the cursor on the item it found.
+            const same = backend.folder.path === pane.loadedPath
+            // A new search starts on its first result; ending one keeps the
+            // cursor on what it found.
             const newSearch = backend.folder.query.length > 0
                             && backend.folder.query !== pane.loadedQuery
-            const pathChanged = backend.folder.path !== pane.loadedPath
-            const same = !pathChanged && !newSearch
             pane.loadedPath = backend.folder.path
             pane.loadedQuery = backend.folder.query
             const row = backend.folder.indexOfPath(pane.lastPath)
@@ -306,7 +303,7 @@ FocusScope {
             const answersHere = !!chooser && chooser.mode !== "open"
             // Going up or back names the folder just left, whether or not it
             // had loaded; anything else pending was picked.
-            const arrived = pending ? leftBehind : pathChanged
+            const arrived = pending ? leftBehind : !same
             if (pending || !same)
                 pane.cursorLetGo = false
             if (answersHere && arrived) {
@@ -314,7 +311,7 @@ FocusScope {
                 view.item.letGo()
             } else if (pending)
                 view.item.select(backend.folder.indexOf(pending), false)
-            else if (!same)
+            else if (!same || newSearch)
                 view.item.select(-1, false)
             else if (!pane.cursorLetGo)
                 view.item.select(row >= 0 ? row : Math.min(view.item.currentIndex, backend.folder.count - 1), true)

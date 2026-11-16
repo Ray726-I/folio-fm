@@ -678,19 +678,13 @@ private slots:
 
     void searchStartsOnItsFirstResult()
     {
-        // A search lists its matches in place of the folder, on the same path,
-        // so it counted as the same listing: the cursor stayed on its row, and
-        // a search started on the sixth file landed on the sixth result (#96).
-        // A new query is a new listing and starts on its first result; ending
-        // the search keeps the cursor on the item it found, rather than
-        // sending it to the folder's first row.
+        // A search lists its matches on the folder's own path, so it kept the
+        // cursor's row as a re-read does, instead of starting on its first (#96).
         QTemporaryDir home, plugins;
         QVERIFY(QDir(home.path()).mkdir("files"));
         for (int i = 0; i < 12; ++i)
             write(home.filePath(QString("files/file-%1.txt").arg(i, 2, 10, QLatin1Char('0'))), "x");
         Backend backend(home.path());
-        backend.navigate(home.path());
-        QTRY_COMPARE(backend.folder()->count(), 1);
         Theme theme(home.filePath("theme"));
         Places places(home.path());
         FileOps fileOps;
@@ -754,7 +748,7 @@ private slots:
 
         // Ending it keeps the cursor on what it found.
         backend.folder()->setQuery(QString());
-        QTRY_COMPARE(backend.folder()->count(), 12);
+        QTRY_VERIFY(!backend.folder()->loading());
         QTRY_COMPARE(cursor(), home.filePath("files/file-10.txt"));
     }
 
